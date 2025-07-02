@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-import itertools
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
@@ -51,15 +50,18 @@ def get_random_directions(model):
     return directions
 
 
-def model_forward_loss(model, criterion, data_loader, device):
-    # Evaluate loss over the entire loader
+def model_forward_loss(model, criterion, data_loader, device, max_samples=None):
+    """Return average loss over data_loader or only first `max_samples` items."""
     total_loss, count = 0.0, 0
     with torch.no_grad():
         for inputs, targets in data_loader:
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs)
-            total_loss += criterion(outputs, targets).item() * inputs.size(0)
-            count += inputs.size(0)
+            bsz = inputs.size(0)
+            total_loss += criterion(outputs, targets).item() * bsz
+            count += bsz
+            if max_samples is not None and count >= max_samples:
+                break
     return total_loss / count
 
 
@@ -69,13 +71,13 @@ def add_direction(model, base_params, directions, coeffs):
         p.data = base + coeffs[0] * d1 + coeffs[1] * d2
 
 
-def slice_2d(model, base_params, directions, alphas, betas, data_loader, device):
+def slice_2d(model, base_params, directions, alphas, betas, data_loader, device, max_samples=None):
     criterion = torch.nn.CrossEntropyLoss()
     Z = np.zeros((len(alphas), len(betas)))
     for i, a in enumerate(alphas):
         for j, b in enumerate(betas):
             add_direction(model, base_params, directions, (a, b))
-            Z[i, j] = model_forward_loss(model, criterion, data_loader, device)
+            Z[i, j] = model_forward_loss(model, criterion, data_loader, device, max_samples=max_samples)
     # restore original params
     for p, base in zip(model.parameters(), base_params):
         p.data = base
@@ -88,6 +90,7 @@ def main():
     parser.add_argument("--range", type=float, default=1.0, help="Range of alpha/beta (±range)")
     parser.add_argument("--num_points", type=int, default=21, help="Samples per axis")
     parser.add_argument("--plot", choices=["contour", "3d"], default="contour", help="Plot type for 2D slice")
+    parser.add_argument("--subset", type=int, default=None, help="Use only the first N examples for loss evaluation (speed)")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -113,7 +116,7 @@ def main():
     betas = np.linspace(-args.range, args.range, args.num_points)
 
     print("Computing loss surface...")
-    Z = slice_2d(model, base_params, directions, alphas, betas, data_loader, device)
+    Z = slice_2d(model, base_params, directions, alphas, betas, data_loader, device, max_samples=args.subset)
 
     # Plot
     A, B = np.meshgrid(alphas, betas, indexing="ij")

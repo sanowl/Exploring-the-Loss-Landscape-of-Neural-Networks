@@ -113,17 +113,28 @@ def main():
         total_params = flat_params.numel()
         print(f"Total parameters: {total_params}")
 
-        # initialize random vectors
         eigvals = []
         vecs = []
+
+        def orthogonalize(v, basis):
+            for b in basis:
+                v -= torch.dot(v, b) * b
+            return v
+
         for i in range(args.num_eigs):
             vec = torch.randn(total_params, device=device)
-            for _ in range(20):
+            vec = orthogonalize(vec, vecs)
+            vec /= vec.norm()
+
+            for _ in range(30):
                 hv = hvp(vec)
+                # Gram-Schmidt against previous eigenvectors each iteration
+                hv = orthogonalize(hv, vecs)
                 vec = hv / hv.norm()
+
             eigval = torch.dot(vec, hvp(vec)).item()
             eigvals.append(eigval)
-            vecs.append(vec.cpu())
+            vecs.append(vec.detach())
             print(f"  λ_{i+1}: {eigval:.6f}")
 
     print("Done.")
