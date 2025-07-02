@@ -1,0 +1,40 @@
+seed: 42
+run_name: mnist_lenet
+output_dir: runs/mnist_lenet
+
+# -----------------------------
+# Data
+# -----------------------------
+data:
+  name: MNIST
+  root: ./data
+  batch_size: 128
+  num_workers: 4
+
+# -----------------------------
+# Model
+# -----------------------------
+model:
+  name: lenet
+  num_classes: 10
+
+# -----------------------------
+# Optimizer & Scheduler
+# -----------------------------
+optimizer:
+  name: SGD
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 0.0005
+scheduler:
+  name: StepLR
+  step_size: 5
+  gamma: 0.5
+
+# -----------------------------
+# Training
+# -----------------------------
+train:
+  num_epochs: 10
+  log_interval: 100
+  checkpoint_interval: 1 

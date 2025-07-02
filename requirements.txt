@@ -1,0 +1,6 @@
+torch>=2.0
+torchvision>=0.15
+pyyaml>=6.0
+matplotlib>=3.7
+tqdm>=4.65
+pyhessian @ git+https://github.com/amirgholami/pyhessian.git 
