@@ -14,11 +14,12 @@ from tqdm import tqdm
 
 from loss_landscape.utils.config import load_config
 from importlib import import_module
+import secrets
 
 
 def seed_everything(seed: int):
-    import random, os, numpy as np
-    random.seed(seed)
+    import os, numpy as np
+    secrets.SystemRandom().seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
